@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>番茄鐘工作紀錄器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 text-slate-800">
+
+    <!-- 主應用程式卡片 -->
+    <div class="glass-panel w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col relative">
+        
+        <!-- 頂部設定按鈕 -->
+        <button onclick="toggleSettings()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-100" title="設定 Google Sheet 連線">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+
+        <div class="p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-slate-800 tracking-tight">🍅 番茄鐘紀錄</h1>
+                <p class="text-sm text-slate-500 mt-1">保持專注，自動記錄你的努力</p>
+            </div>
+
+            <!-- 任務表單 -->
+            <div class="space-y-4 mb-8">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">使用者</label>
+                    <select id="userSelect" class="w-full border border-slate-200 rounded-lg px-4 py-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                        <option value="Harry">Harry</option>
+                        <option value="Zoe">Zoe</option>
+                        <option value="Ian">Ian</option>
+                        <option value="Chris">Chris</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">預計工作內容</label>
+                    <input type="text" id="plannedWork" placeholder="例如：回覆客戶信件..." class="w-full border border-slate-200 rounded-lg px-4 py-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">設定時間 (分鐘)</label>
+                    <input type="number" id="timerMinutes" value="26" min="1" class="w-full border border-slate-200 rounded-lg px-4 py-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                </div>
+            </div>
+
+            <!-- 計時器顯示 -->
+            <div class="flex justify-center mb-8">
+                <div class="relative flex items-center justify-center w-48 h-48 bg-slate-50 rounded-full shadow-inner border-[6px] border-slate-100">
+                    <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="transparent" stroke="#f1f5f9" stroke-width="8"></circle>
+                        <circle id="progressCircle" cx="50" cy="50" r="46" fill="transparent" stroke="#ef4444" stroke-width="8" stroke-dasharray="289" stroke-dashoffset="0" class="transition-all duration-1000 ease-linear"></circle>
+                    </svg>
+                    <div id="timeDisplay" class="text-5xl font-bold text-slate-800 font-mono z-10">26:00</div>
+                </div>
+            </div>
+
+            <!-- 控制按鈕 -->
+            <div class="flex justify-center gap-4">
+                <button id="startBtn" onclick="startTimer()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-6 rounded-xl shadow-md shadow-red-500/20 transition-all active:scale-95">
+                    開始專注
+                </button>
+                <button id="cancelBtn" onclick="cancelTimer()" class="hidden flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-3 px-6 rounded-xl transition-all active:scale-95">
+                    放棄計時
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實際工作內容詢問彈窗 (預設隱藏) -->
+    <div id="completionModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300" id="modalContent">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-3xl">🎉</span>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800">計時完成！</h3>
+                <p class="text-sm text-slate-500 mt-1">恭喜完成一個番茄鐘，請記錄實際進度。</p>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-slate-700 mb-2">實際完成的工作內容</label>
+                <textarea id="actualWork" rows="3" class="w-full border border-slate-200 rounded-lg px-4 py-3 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all resize-none" placeholder="例如：完成了前三段回覆，剩餘兩段..."></textarea>
+            </div>
+            
+            <button onclick="submitData()" id="submitBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-xl shadow-md shadow-green-500/20 transition-all flex justify-center items-center gap-2">
+                <span>儲存並上傳至 Google Sheet</span>
+                <div id="loadingSpinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            </button>
+        </div>
+    </div>
+
+    <!-- 設定 Google Apps Script URL 彈窗 -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">⚙️ 系統設定</h3>
+            <p class="text-xs text-slate-500 mb-4">請填入部署好的 Google Apps Script 網址 (Web App URL)</p>
+            
+            <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/..." class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none mb-4">
+            
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleSettings()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">取消</button>
+                <button onclick="saveSettings()" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 吐司提示 (Toast) -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 translate-y-20 opacity-0 flex items-center gap-2 z-50">
+        <span id="toastIcon">✅</span>
+        <span id="toastMsg" class="text-sm font-medium">提示訊息</span>
+    </div>
+
+    <script>
+        // --- 狀態變數 ---
+        let timer;
+        let totalSeconds = 26 * 60;
+        let remainingSeconds = totalSeconds;
+        let isRunning = false;
+        
+        let sessionData = {
+            startTime: '',
+            endTime: '',
+            date: ''
+        };
+
+        const CIRCLE_CIRCUMFERENCE = 289; // 2 * pi * r (r=46)
+
+        // --- 初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('timerMinutes').addEventListener('input', (e) => {
+                if(!isRunning) {
+                    let mins = parseInt(e.target.value) || 0;
+                    totalSeconds = mins * 60;
+                    remainingSeconds = totalSeconds;
+                    updateDisplay();
+                }
+            });
+            updateDisplay();
+            
+            // 載入先前的 webhook URL
+            const savedUrl = localStorage.getItem('gas_webhook_url');
+            if(savedUrl) document.getElementById('scriptUrlInput').value = savedUrl;
+        });
+
+        // --- 計時器邏輯 ---
+        function startTimer() {
+            const plannedWork = document.getElementById('plannedWork').value.trim();
+            if (!plannedWork) {
+                showToast('請先填寫預計工作內容！', '⚠️');
+                document.getElementById('plannedWork').focus();
+                return;
+            }
+
+            if (!localStorage.getItem('gas_webhook_url')) {
+                showToast('請先點擊右上角設定 Google Sheet 連線網址', '⚙️');
+                return;
+            }
+
+            // 記錄開始時間與日期
+            const now = new Date();
+            sessionData.date = formatDate(now);
+            sessionData.startTime = formatTime(now);
+
+            // UI 狀態切換
+            isRunning = true;
+            document.getElementById('userSelect').disabled = true;
+            document.getElementById('plannedWork').disabled = true;
+            document.getElementById('timerMinutes').disabled = true;
+            document.getElementById('startBtn').classList.add('hidden');
+            document.getElementById('cancelBtn').classList.remove('hidden');
+            
+            timer = setInterval(() => {
+                remainingSeconds--;
+                updateDisplay();
+
+                if (remainingSeconds <= 0) {
+                    completeTimer();
+                }
+            }, 1000);
+        }
+
+        function cancelTimer() {
+            clearInterval(timer);
+            resetUI();
+            showToast('已放棄本次番茄鐘', '🛑');
+        }
+
+        function completeTimer() {
+            clearInterval(timer);
+            
+            // 記錄結束時間
+            const now = new Date();
+            sessionData.endTime = formatTime(now);
+
+            // 顯示彈窗
+            const modal = document.getElementById('completionModal');
+            const modalContent = document.getElementById('modalContent');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // 小動畫
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        // --- 顯示更新 ---
+        function updateDisplay() {
+            const mins = Math.floor(remainingSeconds / 60);
+            const secs = remainingSeconds % 60;
+            document.getElementById('timeDisplay').innerText = 
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            // 更新圓環進度
+            const progress = (remainingSeconds / totalSeconds);
+            const dashoffset = CIRCLE_CIRCUMFERENCE - (progress * CIRCLE_CIRCUMFERENCE);
+            document.getElementById('progressCircle').style.strokeDashoffset = dashoffset;
+        }
+
+        function resetUI() {
+            isRunning = false;
+            let mins = parseInt(document.getElementById('timerMinutes').value) || 26;
+            totalSeconds = mins * 60;
+            remainingSeconds = totalSeconds;
+            updateDisplay();
+
+            document.getElementById('userSelect').disabled = false;
+            document.getElementById('plannedWork').disabled = false;
+            document.getElementById('timerMinutes').disabled = false;
+            
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('cancelBtn').classList.add('hidden');
+            document.getElementById('plannedWork').value = '';
+            document.getElementById('actualWork').value = '';
+        }
+
+        // --- 資料送出 ---
+        async function submitData() {
+            const actualWork = document.getElementById('actualWork').value.trim();
+            if (!actualWork) {
+                showToast('請輸入實際工作內容！', '⚠️');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            const spinner = document.getElementById('loadingSpinner');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+
+            const user = document.getElementById('userSelect').value;
+            const plannedWork = document.getElementById('plannedWork').value;
+            
+            // 計算今日累積番茄鐘
+            const storageKey = `pomodoro_${user}_${sessionData.date}`;
+            let accumulated = parseInt(localStorage.getItem(storageKey) || '0');
+            accumulated += 1;
+            
+            const payload = {
+                user: user,
+                date: sessionData.date,
+                startTime: sessionData.startTime,
+                endTime: sessionData.endTime,
+                plannedWork: plannedWork,
+                actualWork: actualWork,
+                accumulated: accumulated
+            };
+
+            const webhookUrl = localStorage.getItem('gas_webhook_url');
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if(result.result === 'success') {
+                    // 成功才真正寫入 LocalStorage
+                    localStorage.setItem(storageKey, accumulated.toString());
+                    closeModal();
+                    resetUI();
+                    showToast(`紀錄成功！這是你今天第 ${accumulated} 個番茄鐘 🎉`, '✅');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('上傳失敗，請檢查網路或設定檔！', '❌');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('completionModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        // --- 設定與工具函數 ---
+        function toggleSettings() {
+            const modal = document.getElementById('settingsModal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function saveSettings() {
+            const url = document.getElementById('scriptUrlInput').value.trim();
+            if(url.startsWith('https://script.google.com/')) {
+                localStorage.setItem('gas_webhook_url', url);
+                toggleSettings();
+                showToast('設定已儲存', '💾');
+            } else {
+                showToast('請輸入有效的 Google Apps Script 網址', '⚠️');
+            }
+        }
+
+        function formatDate(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}/${mm}/${dd}`;
+        }
+
+        function formatTime(date) {
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            const ss = String(date.getSeconds()).padStart(2, '0');
+            return `${hh}:${mm}:${ss}`;
+        }
+
+        function showToast(message, icon) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            document.getElementById('toastIcon').innerText = icon;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
