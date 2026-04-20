@@ -132,6 +132,44 @@
             updateDisplay();
         });
 
+        // --- 音效邏輯 (Web Audio API) ---
+        function playChime() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            
+            // 響三次迴圈
+            for (let i = 0; i < 3; i++) {
+                const offset = i * 1.2; // 每次音效間隔 1.2 秒
+                
+                // 第一聲 (A5 音高)
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(880, ctx.currentTime + offset); 
+                gain1.gain.setValueAtTime(0, ctx.currentTime + offset);
+                gain1.gain.linearRampToValueAtTime(0.5, ctx.currentTime + offset + 0.05);
+                gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.5);
+                osc1.start(ctx.currentTime + offset);
+                osc1.stop(ctx.currentTime + offset + 0.5);
+
+                // 第二聲 (C6 音高，稍微延遲)
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(1046.50, ctx.currentTime + offset + 0.2); 
+                gain2.gain.setValueAtTime(0, ctx.currentTime + offset + 0.2);
+                gain2.gain.linearRampToValueAtTime(0.5, ctx.currentTime + offset + 0.25);
+                gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 1.0);
+                osc2.start(ctx.currentTime + offset + 0.2);
+                osc2.stop(ctx.currentTime + offset + 1.0);
+            }
+        }
+
         // --- 計時器邏輯 ---
         function startTimer() {
             const plannedWork = document.getElementById('plannedWork').value.trim();
@@ -177,6 +215,9 @@
 
         function completeTimer() {
             clearInterval(timer);
+            
+            // 播放提示音
+            playChime();
             
             // 記錄結束時間
             const now = new Date();
