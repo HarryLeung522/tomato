@@ -19,14 +19,6 @@
 
     <!-- 主應用程式卡片 -->
     <div class="glass-panel w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col relative">
-        
-        <!-- 頂部設定按鈕 -->
-        <button onclick="toggleSettings()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-100" title="設定 Google Sheet 連線">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-        </button>
 
         <div class="p-8">
             <div class="text-center mb-8">
@@ -101,21 +93,6 @@
         </div>
     </div>
 
-    <!-- 設定 Google Apps Script URL 彈窗 -->
-    <div id="settingsModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-2">⚙️ 系統設定</h3>
-            <p class="text-xs text-slate-500 mb-4">請填入部署好的 Google Apps Script 網址 (Web App URL)</p>
-            
-            <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/..." class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none mb-4">
-            
-            <div class="flex justify-end gap-3">
-                <button onclick="toggleSettings()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">取消</button>
-                <button onclick="saveSettings()" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors">儲存設定</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 吐司提示 (Toast) -->
     <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 translate-y-20 opacity-0 flex items-center gap-2 z-50">
         <span id="toastIcon">✅</span>
@@ -123,6 +100,11 @@
     </div>
 
     <script>
+        // ==========================================
+        // ⚠️ 請在此填入你部署好的 Google Apps Script 網址
+        // ==========================================
+        const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxTIa2FHJkomxoAOGw2_-bzB3osJH1gpTindZGu8gNQf6IWi0Urm3CCOl66Mvn0wQAu/exec";
+
         // --- 狀態變數 ---
         let timer;
         let totalSeconds = 26 * 60;
@@ -148,10 +130,6 @@
                 }
             });
             updateDisplay();
-            
-            // 載入先前的 webhook URL
-            const savedUrl = localStorage.getItem('gas_webhook_url');
-            if(savedUrl) document.getElementById('scriptUrlInput').value = savedUrl;
         });
 
         // --- 計時器邏輯 ---
@@ -163,8 +141,8 @@
                 return;
             }
 
-            if (!localStorage.getItem('gas_webhook_url')) {
-                showToast('請先點擊右上角設定 Google Sheet 連線網址', '⚙️');
+            if (WEBAPP_URL === "請在此填入你的_GOOGLE_APPS_SCRIPT_網址" || !WEBAPP_URL) {
+                showToast('請先在程式碼中填寫 Google Apps Script 網址！', '⚙️');
                 return;
             }
 
@@ -279,10 +257,8 @@
                 accumulated: accumulated
             };
 
-            const webhookUrl = localStorage.getItem('gas_webhook_url');
-
             try {
-                const response = await fetch(webhookUrl, {
+                const response = await fetch(WEBAPP_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'text/plain;charset=utf-8',
@@ -325,28 +301,6 @@
         }
 
         // --- 設定與工具函數 ---
-        function toggleSettings() {
-            const modal = document.getElementById('settingsModal');
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            } else {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
-
-        function saveSettings() {
-            const url = document.getElementById('scriptUrlInput').value.trim();
-            if(url.startsWith('https://script.google.com/')) {
-                localStorage.setItem('gas_webhook_url', url);
-                toggleSettings();
-                showToast('設定已儲存', '💾');
-            } else {
-                showToast('請輸入有效的 Google Apps Script 網址', '⚠️');
-            }
-        }
-
         function formatDate(date) {
             const yyyy = date.getFullYear();
             const mm = String(date.getMonth() + 1).padStart(2, '0');
